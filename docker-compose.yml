@@ -1,0 +1,123 @@
+version: '2'
+services:
+
+  #RabbitMQ broker, for Celery
+  rabbit:
+    hostname: rabbit
+    image: rabbitmq:3.7.3
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+
+  #Flower UI for Celery queue
+  ui:
+    build: ./celery-ib
+    command: flower -A worker --port=5555 --broker=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
+    environment:
+      - BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
+    volumes:
+      - ./worker:/worker
+      - ./ibapi:/ibapi
+    ports:
+        - "127.0.0.1:5010:5555"
+    links:
+        - rabbit
+    depends_on:
+        - rabbit
+
+  #Python Celery worker
+  worker-1:
+    build: ./celery-ib
+    command: celery -A worker worker --loglevel=info -Ofair --concurrency=1
+    environment:
+      - BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
+      - ECHEANCE_CAC40=${ECHEANCE_CAC40}
+      - ECHEANCE_DAX=${ECHEANCE_DAX}
+      - ECHEANCE_EUROSTOXX=${ECHEANCE_EUROSTOXX}
+      - ECHEANCE_FTSEMIB=${ECHEANCE_FTSEMIB}
+    volumes:
+      - ./worker:/worker
+      - ./ibapi:/ibapi
+      - ./logs:/logs
+    links:
+      - tws:tws
+
+  #Celery beat, to schedule periodic tasks
+  beat:
+    build: ./celery-ib
+    command: celery -A worker beat --loglevel=info
+    environment:
+      - BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
+    links:
+        - rabbit
+    depends_on:
+        - postgres
+        - rabbit
+    volumes:
+      - ./worker:/worker
+      - ./ibapi:/ibapi
+
+  #Interactive Broker containerized API
+  tws:
+    build: ./ib-docker
+    ports:
+      - "127.0.0.1:4003:4003"
+      - "127.0.0.1:5900:5900"
+    volumes:
+      - ./ib-docker/IBController.ini:/opt/IBController/IBController.ini
+      - ./ib-docker/jts.ini:/root/Jts/jts.ini
+    environment:
+      - TZ=France/Paris
+      # Variables pulled from /IBController/IBControllerGatewayStart.sh
+      # Normally this script sets those environment variables and then launches DisplayBannerAndLaunch.sh.
+      # But now it's our runscript.sh that launches DisplayBannerAndLaunch.sh, so we set ourselves the environment variables
+      - VNC_PASSWORD=password
+      - TWS_MAJOR_VRSN=974
+      - IBC_INI=/opt/IBController/IBController.ini
+      - TRADING_MODE=paper
+      - IBC_PATH=/opt/IBController
+      - TWS_PATH=/root/Jts
+      - TWS_CONFIG_PATH=/root/Jts
+      - LOG_PATH=/opt/IBController/Logs
+      - TWSUSERID=XXX
+      - TWSPASSWORD=XXX
+      - FIXUSERID=
+      - FIXPASSWORD=
+      - JAVA_PATH=
+      - APP=GATEWAY
+
+  #Database
+  postgres:
+    image: postgres:9.6
+    restart: always
+    environment:
+      POSTGRES_DB: ${PG_DATABASE}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./db:/init
+
+  #Database web client
+  pgweb:
+    image: sosedoff/pgweb
+    command: pgweb --readonly --bind=0.0.0.0 --listen=8081
+    ports: ["127.0.0.1:8080:8081"]
+    links:
+      - postgres:postgres
+    environment:
+      - DATABASE_URL=postgres://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?sslmode=disable
+    depends_on:
+      - postgres
+
+  #Grafana to explore and visualise data
+  grafana:
+    image: grafana/grafana:5.0.3
+    restart: always
+    ports:
+        - "127.0.0.1:7000:3000"
+    volumes:
+      - ./grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
