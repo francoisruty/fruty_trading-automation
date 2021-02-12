@@ -61,29 +61,27 @@ services:
   tws:
     build: ./ib-docker
     ports:
-      - "127.0.0.1:4003:4003"
-      - "127.0.0.1:5900:5900"
+      - "4003:4003"
+      - "5901:5900"
     volumes:
-      - ./ib-docker/IBController.ini:/opt/IBController/IBController.ini
-      - ./ib-docker/jts.ini:/root/Jts/jts.ini
+      - ./ib-docker/ib/IBController.ini:/root/IBController/IBController.ini
+      - ./ib-docker/ib/jts.ini:/root/Jts/jts.ini
     environment:
-      - TZ=France/Paris
+      - TZ=America/Chicago
       # Variables pulled from /IBController/IBControllerGatewayStart.sh
-      # Normally this script sets those environment variables and then launches DisplayBannerAndLaunch.sh.
-      # But now it's our runscript.sh that launches DisplayBannerAndLaunch.sh, so we set ourselves the environment variables
-      - VNC_PASSWORD=password
+      - VNC_PASSWORD=password # CHANGEME
       - TWS_MAJOR_VRSN=974
-      - IBC_INI=/opt/IBController/IBController.ini
-      - TRADING_MODE=paper
+      - IBC_INI=/root/IBController/IBController.ini
       - IBC_PATH=/opt/IBController
       - TWS_PATH=/root/Jts
       - TWS_CONFIG_PATH=/root/Jts
       - LOG_PATH=/opt/IBController/Logs
-      - TWSUSERID=XXX
-      - TWSPASSWORD=XXX
+      - JAVA_PATH=/opt/i4j_jres/1.8.0_152/bin # JRE is bundled starting with TWS 952 
+      - TRADING_MODE=paper # either paper or live
+      - TWSUSERID=${TWS_USER} # IB account
+      - TWSPASSWORD=${TWS_PASSWORD} # IB account password
       - FIXUSERID=
       - FIXPASSWORD=
-      - JAVA_PATH=
       - APP=GATEWAY
 
   #Database
