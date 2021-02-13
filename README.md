@@ -11,17 +11,17 @@
 
 - docker-compose up -d
 
-
 Make sure all services are up and running.
 NOTE: pgweb is often down at first because postgres is still starting. Wait a few seconds,
 re-run docker-compose up -d and pgweb will come online.
 
-NOTE: To rebuild the entire docker container:
-- docker-compose up --build --force-recreate --no-deps -d
-
 - create the table in the database
 
-docker-compose -f docker-compose.yml exec postgres psql --username=trading -d trading -f ../init/init.sql
+docker-compose exec postgres /bin/bash
+psql --username=trading
+\i /init/init.sql;
+\q
+exit
 
 - now go to Flower UI:  http://127.0.0.1:5010
 
