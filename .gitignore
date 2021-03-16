@@ -1,3 +1,2 @@
-﻿pgdata/
-*.pyc
-grafana/
+﻿*.pyc
+mysqldb/
