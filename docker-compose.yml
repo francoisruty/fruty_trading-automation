@@ -5,6 +5,7 @@ services:
   rabbit:
     hostname: rabbit
     image: rabbitmq:3.7.3
+    restart: unless-stopped
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
@@ -12,11 +13,11 @@ services:
   #Flower UI for Celery queue
   ui:
     build: ./celery-ib
-    command: flower -A worker --port=5555 --broker=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
+    command: flower -A celery_tutorial.celery_app --port=5555 --broker=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit --auto_refresh=True --loglevel="DEBUG"
     environment:
       - BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
     volumes:
-      - ./worker:/worker
+      - ./celery_tutorial:/celery_tutorial
       - ./ibapi:/ibapi
     ports:
         - "127.0.0.1:5010:5555"
@@ -24,37 +25,21 @@ services:
         - rabbit
     depends_on:
         - rabbit
-
-  #Python Celery worker
-  worker-1:
-    build: ./celery-ib
-    command: celery -A worker worker --loglevel=info -Ofair --concurrency=1
-    environment:
-      - BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
-      - ECHEANCE_CAC40=${ECHEANCE_CAC40}
-      - ECHEANCE_DAX=${ECHEANCE_DAX}
-      - ECHEANCE_EUROSTOXX=${ECHEANCE_EUROSTOXX}
-      - ECHEANCE_FTSEMIB=${ECHEANCE_FTSEMIB}
-    volumes:
-      - ./worker:/worker
-      - ./ibapi:/ibapi
-      - ./logs:/logs
-    links:
-      - tws:tws
+    restart: unless-stopped
 
   #Celery beat, to schedule periodic tasks
   beat:
     build: ./celery-ib
-    command: celery -A worker beat --loglevel=info
+    command: celery -A celery_tutorial.celery_app beat -l "DEBUG"
+    restart: unless-stopped
     environment:
       - BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
     links:
         - rabbit
     depends_on:
-        - postgres
         - rabbit
     volumes:
-      - ./worker:/worker
+      - ./celery_tutorial:/celery_tutorial
       - ./ibapi:/ibapi
 
   #Interactive Broker containerized API
@@ -66,56 +51,106 @@ services:
     volumes:
       - ./ib-docker/ib/IBController.ini:/root/IBController/IBController.ini
       - ./ib-docker/ib/jts.ini:/root/Jts/jts.ini
+    restart: unless-stopped
     environment:
       - TZ=America/Chicago
-      # Variables pulled from /IBController/IBControllerGatewayStart.sh
-      - VNC_PASSWORD=password # CHANGEME
+      - VNC_PASSWORD=${RABBITMQ_DEFAULT_USER}
       - TWS_MAJOR_VRSN=974
       - IBC_INI=/root/IBController/IBController.ini
       - IBC_PATH=/opt/IBController
       - TWS_PATH=/root/Jts
       - TWS_CONFIG_PATH=/root/Jts
       - LOG_PATH=/opt/IBController/Logs
-      - JAVA_PATH=/opt/i4j_jres/1.8.0_152/bin # JRE is bundled starting with TWS 952 
+      - JAVA_PATH=/opt/i4j_jres/1.8.0_152/bin # JRE is bundled starting with TWS 952
       - TRADING_MODE=paper # either paper or live
-      - TWSUSERID=${TWS_USER} # IB account
+      - TWSUSERID=${TWS_USER_ID} # IB account
       - TWSPASSWORD=${TWS_PASSWORD} # IB account password
       - FIXUSERID=
       - FIXPASSWORD=
       - APP=GATEWAY
 
-  #Database
-  postgres:
-    image: postgres:9.6
-    restart: always
+  #Python Celery worker
+  worker-1:
+    build: ./celery-ib
+    command:  celery -A celery_tutorial.celery_app worker -l "DEBUG"
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${PG_DATABASE}
-      POSTGRES_USER: ${PG_USER}
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      - BROKER=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbit
+      - ECHEANCE_CAC40=${ECHEANCE_CAC40}
+      - ECHEANCE_DAX=${ECHEANCE_DAX}
+      - ECHEANCE_EUROSTOXX=${ECHEANCE_EUROSTOXX}
+      - ECHEANCE_FTSEMIB=${ECHEANCE_FTSEMIB}
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
-      - ./db:/init
+      - ./celery_tutorial:/celery_tutorial
+      - ./ibapi:/ibapi
+      - ./logs:/logs
+    links:
+      - tws:tws
+
+  mysqldb:
+    image: library/mysql:5.7.28
+#    image: library/mysql:5.7.32
+    restart: 'no'
+    command: mysqld --explicit_defaults_for_timestamp=1
+    environment:
+      MYSQL_DATABASE: trading
+      MYSQL_USER: ${MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+#    ports:
+#      - "3306:3306"
+#    expose:
+#      - '3306'
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./mysqldb:/var/lib/mysql
 
   #Database web client
-  pgweb:
-    image: sosedoff/pgweb
-    command: pgweb --readonly --bind=0.0.0.0 --listen=8081
-    ports: ["127.0.0.1:8080:8081"]
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.0.4      # :5.0.4
     links:
-      - postgres:postgres
+      - mysqldb
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=postgres://${PG_USER}:${PG_PASSWORD}@postgres:5432/${PG_DATABASE}?sslmode=disable
+      PMA_HOST: mysqldb
+      PMA_PORT: '3306'
+      PMA_USER: 'admin'
+      PMA_PASSWORD: 'password'
+#      - PMA_HOST=${PMA_HOST}
+#      - MYSQL_USERNAME=${MYSQL_USERNAME}
+#      - MYSQL_PWD=${MYSQL_ROOT_PASSWORD}
+#      - MYSQL_DATABASE=trading
+    ports:
+      - 8081:80
     depends_on:
-      - postgres
+      - mysqldb
 
   #Grafana to explore and visualise data
   grafana:
-    image: grafana/grafana:5.0.3
-    restart: always
+    image: grafana/grafana:5.0.3      # :5.0.3
+    restart: unless-stopped
     ports:
         - "127.0.0.1:7000:3000"
     volumes:
       - ./grafana:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=password
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+
+# IB TWS IN CONTAINER
+  "tws-gui":
+    build: ./_GUI
+    environment:
+      - TZ=America/Chicago
+    logging:
+      driver: "none"
+    ports:
+      - "5904:5900"
+    volumes:
+      - ./_GUI:/var/lib/GUI
+
+
+## name our volume(s)
+volumes:
+  mysqldb:
