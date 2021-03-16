@@ -1,7 +1,5 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 MAINTAINER Ryan Kennedy <hello@ryankennedy.io>
-#All this comes from https://github.com/ryankennedyio/ib-docker
-
 
 RUN  apt-get update \
   && apt-get install -y wget \
@@ -36,9 +34,9 @@ RUN yes n | /opt/TWS/ibgateway-latest-standalone-linux-x64-v974.4g.sh
 ENV DISPLAY :0
 
 ADD runscript.sh runscript.sh
-ADD ./vnc/xvfb_init /etc/init.d/xvfb
-ADD ./vnc/vnc_init /etc/init.d/vnc
-ADD ./vnc/xvfb-daemon-run /usr/bin/xvfb-daemon-run
+ADD vnc/xvfb_init /etc/init.d/xvfb
+ADD vnc/vnc_init /etc/init.d/vnc
+ADD vnc/xvfb-daemon-run /usr/bin/xvfb-daemon-run
 
 RUN chmod -R u+x runscript.sh \
   && chmod -R 777 /usr/bin/xvfb-daemon-run \
@@ -51,7 +49,7 @@ RUN dos2unix /usr/bin/xvfb-daemon-run \
   && dos2unix runscript.sh
 
 # Below files copied during build to enable operation without volume mount
-COPY ./ib/IBController.ini /root/IBController/IBController.ini
-COPY ./ib/jts.ini /root/Jts/jts.ini
+COPY ib/IBController.ini /root/IBController/IBController.ini
+COPY ib/jts.ini /root/Jts/jts.ini
 
 CMD bash runscript.sh
