@@ -61,10 +61,10 @@ services:
       - TWS_PATH=/root/Jts
       - TWS_CONFIG_PATH=/root/Jts
       - LOG_PATH=/opt/IBController/Logs
-      - JAVA_PATH=/opt/i4j_jres/1.8.0_152/bin # JRE is bundled starting with TWS 952
-      - TRADING_MODE=paper # either paper or live
-      - TWSUSERID=${TWS_USER_ID} # IB account
-      - TWSPASSWORD=${TWS_PASSWORD} # IB account password
+      - JAVA_PATH=/opt/i4j_jres/1.8.0_152/bin                 # JRE is bundled starting with TWS 952
+      - TRADING_MODE=paper                                    # either paper or live
+      - TWSUSERID=${TWS_USER_ID}                              # IB account
+      - TWSPASSWORD=${TWS_PASSWORD}                           # IB account password
       - FIXUSERID=
       - FIXPASSWORD=
       - APP=GATEWAY
@@ -88,43 +88,32 @@ services:
       - tws:tws
 
   mysqldb:
-    image: library/mysql:5.7.28
-#    image: library/mysql:5.7.32
-    restart: 'no'
-    command: mysqld --explicit_defaults_for_timestamp=1
+    image: mysql:5.7
+    restart: always
+    command: mysqld --explicit_defaults_for_timestamp
     environment:
       MYSQL_DATABASE: trading
       MYSQL_USER: ${MYSQL_USERNAME}
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-#    ports:
-#      - "3306:3306"
-#    expose:
-#      - '3306'
     ports:
       - "3308:3306"
     volumes:
+      - ./setup.sql:/tmp/setup.sql
       - ./mysqldb:/var/lib/mysql
 
   #Database web client
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:5.0.4      # :5.0.4
+    environment:
+      PMA_ARBITRARY: 1
+    restart: always
     links:
       - mysqldb
-    restart: unless-stopped
-    environment:
-      PMA_HOST: mysqldb
-      PMA_PORT: '3306'
-      PMA_USER: 'admin'
-      PMA_PASSWORD: 'password'
-#      - PMA_HOST=${PMA_HOST}
-#      - MYSQL_USERNAME=${MYSQL_USERNAME}
-#      - MYSQL_PWD=${MYSQL_ROOT_PASSWORD}
-#      - MYSQL_DATABASE=trading
     ports:
-      - 8081:80
-    depends_on:
-      - mysqldb
+      - 8080:80
+    volumes:
+      - /sessions
 
   #Grafana to explore and visualise data
   grafana:
@@ -149,7 +138,6 @@ services:
       - "5904:5900"
     volumes:
       - ./_GUI:/var/lib/GUI
-
 
 ## name our volume(s)
 volumes:
