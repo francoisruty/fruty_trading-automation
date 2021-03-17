@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/module.js"],"names":[],"mappings":";;;;;;;AAAA;;QAG0B,U","file":"module.js","sourcesContent":["import {PerconaAppConfigCtrl} from './components/config';\n\nexport {\n  PerconaAppConfigCtrl as ConfigCtrl\n};\n"]}

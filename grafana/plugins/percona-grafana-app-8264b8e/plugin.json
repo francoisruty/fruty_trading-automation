@@ -1,0 +1,54 @@
+{
+  "type": "app",
+  "name": "Percona",
+  "id": "percona-percona-app",
+
+  "css": {
+    "dark":  "css/dark.css",
+    "light":  "css/light.css"
+  },
+
+  "info": {
+    "description": "Percona app for Grafana",
+    "author": {
+      "name": "Percona",
+      "url": "https://percona.com"
+    },
+    "keywords": ["percona", "mysql"],
+    "logos": {
+      "small": "src/img/percona_small.png",
+      "large": "src/img/percona_large.png"
+    },
+    "links": [
+      {"name": "Percona", "url": "https://percona.com"},
+      {"name": "GitHub", "url": "https://github.com/percona/grafana-app"}
+    ],
+    "version": "1.0.0",
+    "updated": "2016-05-25"
+  },
+
+  "includes": [
+    {"type": "dashboard", "name": "Cross Server Graphs | Percona App", "path": "dashboards/Cross_Server_Graphs.json", "addToNav": true, "defaultNav": true},
+    {"type": "dashboard", "name": "Disk Performance | Percona App", "path": "dashboards/Disk_Performance.json", "addToNav": true},
+    {"type": "dashboard", "name": "Disk Space | Percona App", "path": "dashboards/Disk_Space.json", "addToNav": true},
+    {"type": "dashboard", "name": "Galera Graphs | Percona App", "path": "dashboards/Galera_Graphs.json"},
+    {"type": "dashboard", "name": "MySQL InnoDB Metrics | Percona App", "path": "dashboards/MySQL_InnoDB_Metrics.json", "addToNav": true},
+    {"type": "dashboard", "name": "MySQL MyISAM Metrics | Percona App", "path": "dashboards/MySQL_MyISAM_Metrics.json"},
+    {"type": "dashboard", "name": "MySQL Overview | Percona App", "path": "dashboards/MySQL_Overview.json", "addToNav": true},
+    {"type": "dashboard", "name": "MySQL Performance Schema | Percona App", "path": "dashboards/MySQL_Performance_Schema.json"},
+    {"type": "dashboard", "name": "MySQL Query Response Time | Percona App", "path": "dashboards/MySQL_Query_Response_Time.json"},
+    {"type": "dashboard", "name": "MySQL Replication | Percona App", "path": "dashboards/MySQL_Replication.json", "addToNav": true},
+    {"type": "dashboard", "name": "MySQL Table Statistics | Percona App", "path": "dashboards/MySQL_Table_Statistics.json"},
+    {"type": "dashboard", "name": "MySQL User Statistics | Percona App", "path": "dashboards/MySQL_User_Statistics.json"},
+    {"type": "dashboard", "name": "Prometheus | Percona App", "path": "dashboards/Prometheus.json"},
+    {"type": "dashboard", "name": "Summary Dashboard | Percona App", "path": "dashboards/Summary_Dashboard.json", "addToNav": true},
+    {"type": "dashboard", "name": "System Overview | Percona App", "path": "dashboards/System_Overview.json", "addToNav": true},
+    {"type": "dashboard", "name": "TokuDB Graphs | Percona App", "path": "dashboards/TokuDB_Metrics.json"},
+    {"type": "dashboard", "name": "Trends Dashboard | Percona App", "path": "dashboards/Trends_Dashboard.json", "addToNav": true}
+  ],
+
+  "dependencies": {
+    "grafanaVersion": "3.x.x",
+    "plugins": []
+  }
+}
