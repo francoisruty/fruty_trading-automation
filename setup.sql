@@ -5,7 +5,7 @@ USE trading;
 -- SET explicit_defaults_for_timestamp = 1;
 
 -- DROP TABLE IF EXISTS tblForex;
-CREATE TABLE tblForex
+CREATE TABLE trading.tblForex
 (
     date date null,
     open     float,
